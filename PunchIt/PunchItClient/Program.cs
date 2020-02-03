@@ -68,10 +68,10 @@ namespace PunchItClient
             // This listing represents the Main workflow
             State state = GetState() ?? CreateState();
 
-            UserInterface.Print(2, "Welcome to \"Punch It!\"");
-            UserInterface.Print("");
-            UserInterface.Print("");
-            UserInterface.Print("");
+            //UserInterface.Print(2, "Welcome to \"Punch It!\"");
+            //UserInterface.Print("");
+            //UserInterface.Print("");
+            //UserInterface.Print("");
 
             Project currentProject = null;
             while (currentProject == null)
@@ -387,7 +387,8 @@ namespace PunchItClient
         {
             var lastOpenEntry = currentRecord.LastOpenEntry();
 
-            UserInterface.Print(indent, "What do you want to do?");
+            var indentInfo = indent-1;
+            UserInterface.Print(indentInfo, "What do you want to do?");
             UserInterface.Print("");
 
             if (lastOpenEntry != null)
@@ -398,21 +399,23 @@ namespace PunchItClient
                 var restWorkDay = TimeSpan.FromHours(8) - currentWorkDay;
                 var currentPackage = (DateTime.Now - lastOpenEntry.Start).Value;
 
-                UserInterface.Print(indent, $"Your day so far              - [ ALL   ] --> {currentDay.Hours:#0} hours {currentDay.Minutes:#0.#} minutes");
-                UserInterface.Print(indent, $"Your work day so far         - [ WORK  ] --> {currentWorkDay.Hours:#0} hours {currentWorkDay.Minutes:#0.#} minutes");
-                UserInterface.Print(indent, $"Your work day so far         - [ PAUSE ] --> {currentWorkDayPause.Hours:#0} hours {currentWorkDayPause.Minutes:#0.#} minutes");
+                UserInterface.Print(indentInfo, $"Your day so far              - [ ALL   ] --> {currentDay.Hours:#0} hours {currentDay.Minutes:#0.#} minutes");
+                UserInterface.Print(indentInfo, $"Your work day so far         - [ WORK  ] --> {currentWorkDay.Hours:#0} hours {currentWorkDay.Minutes:#0.#} minutes");
+                UserInterface.Print(indentInfo, $"Your work day so far         - [ PAUSE ] --> {currentWorkDayPause.Hours:#0} hours {currentWorkDayPause.Minutes:#0.#} minutes");
                 UserInterface.Print("");
-                UserInterface.Print(indent, $"Rest of your working hours   - [ REST  ] --> {restWorkDay.Hours:#0} hours {restWorkDay.Minutes:#0.#} minutes");
+                UserInterface.Print(indentInfo, $"Rest of your working hours   - [ REST  ] --> {restWorkDay.Hours:#0} hours {restWorkDay.Minutes:#0.#} minutes");
                 UserInterface.Print("");
-                UserInterface.Print(indent, $"You are currently working on - [ {lastOpenEntry.PackageKey} ] for {currentPackage.Hours:#0} hours {currentPackage.Minutes:#0.#} minutes");
+                UserInterface.Print(indentInfo, $"You are currently working on - [ {lastOpenEntry.PackageKey} ] for {currentPackage.Hours:#0} hours {currentPackage.Minutes:#0.#} minutes");
+                UserInterface.Print("");
                 UserInterface.Print("");
             }
 
             //Start working on a package
             foreach (Package package in currentProject.Packages)
             {
-                UserInterface.Print(indent + 1, $"> {currentProject.Packages.IndexOf(package)} < \t start working on - [{(package.RelevantForTimeTracking ? "X" : "O")}| {package.Abbreviation}, \t {package.DisplayName} ]");
+                UserInterface.Print(indent + 1, $"> {currentProject.Packages.IndexOf(package)} < \t [{(package.RelevantForTimeTracking ? "X" : "O")}| {package.Abbreviation}, \t {package.DisplayName} ] <- start working on it ");
             }
+            UserInterface.Print("");
             UserInterface.Print("");
 
             if (lastOpenEntry != null)
