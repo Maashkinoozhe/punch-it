@@ -19,6 +19,7 @@ namespace PIExport
             Project = project;
             End = end;
             Start = start;
+            CleanMissingEndTimesInBetween = true;
         }
 
         public DateTime Start { get; }
@@ -63,7 +64,8 @@ namespace PIExport
 
             foreach (var entry in entriesSorted)
             {
-                CreateEntry(builder, entry.Start.Value, entry.End.Value, entry.PackageKey);
+                var endTime = entry.End.HasValue ? entry.End.Value : (entry.Start.Value.Date.Equals(DateTime.Now.Date) ? DateTime.Now : entry.Start.Value);
+                CreateEntry(builder, entry.Start.Value, endTime, entry.PackageKey);
             }
         }
 
