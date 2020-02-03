@@ -356,6 +356,8 @@ namespace PunchItClient
                 {
                     stop = true;
                 }
+
+                if(!stop) UserInterface.ClearConsole();
             }
         }
 

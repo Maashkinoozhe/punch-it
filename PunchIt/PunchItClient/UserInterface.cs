@@ -117,5 +117,10 @@ namespace PunchItClient
             var padding = string.Concat(Enumerable.Repeat("\t", indent));
             Console.Out.Write(padding + message);
         }
+
+        public static void ClearConsole()
+        {
+            Console.Clear();
+        }
     }
 }
