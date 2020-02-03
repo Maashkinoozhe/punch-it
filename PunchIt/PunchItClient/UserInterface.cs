@@ -39,12 +39,55 @@ namespace PunchItClient
             return answer;
         }
 
+        public static string GetUserChar(int indent, string question, Func<string, bool> validation, Func<string, bool> stopRead, string allowedInputs, int allowedDigits)
+        {
+            string answer = null;
+            while (answer == null)
+            {
+                PrintSameLine(indent, question);
+                PrintSameLine(0, " -> ");
+                var buffer = new char[allowedDigits];
+                string line = null;
+                var index = 0;
+                while (index < allowedDigits)
+                {
+                    while (buffer[index] == '\0')
+                    {
+                        var key = Console.ReadKey();
+                        buffer[index] = key.KeyChar;
+                    }
+
+                    line = new string(buffer.Take(index + 1).ToArray());
+                    if (stopRead.Invoke(line)) break;
+                    index += 1;
+                }
+
+                if (validation != null)
+                {
+                    answer = (validation.Invoke(line)) ? line : null;
+                }
+                else
+                {
+                    answer = line;
+                }
+
+                if (answer == null)
+                {
+                    Print(indent, allowedInputs);
+                    Print("");
+                }
+            }
+
+            UserInterface.Print(indent, "");
+            return answer;
+        }
+
         public static int GetUserInt(int indent, string question)
         {
             return GetUserInt(indent, question, null, null);
         }
 
-        public static int GetUserInt(int indent, string question, Func<int, bool> validation, string allowedInputs,string questionIndicator = " -> ")
+        public static int GetUserInt(int indent, string question, Func<int, bool> validation, string allowedInputs, string questionIndicator = " -> ")
         {
             int? result = null;
             while (result == null)
@@ -85,7 +128,7 @@ namespace PunchItClient
                 PrintSameLine(0, " -> ");
                 var line = Console.In.ReadLine();
                 answer = GetValidConfirmation(line);
-                
+
                 if (answer == null) Print(indent, "Answer: y/Y/yes or n/N/no");
             }
 

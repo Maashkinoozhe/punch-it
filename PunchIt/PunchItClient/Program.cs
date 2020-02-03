@@ -323,10 +323,12 @@ namespace PunchItClient
                 // List Actions
                 ListActions(2, currentProject, currentRecord);
 
-                var answer = UserInterface.GetUserString(1, "Select on what to do");
+                var numberOfPackages = currentProject.Packages.Count;
+                var answer = UserInterface.GetUserChar(1, "Select on what to do",null,x=> StopReadUserInteraction(x,numberOfPackages),"please type sensible things > ? <",numberOfPackages.ToString().Length);
+
                 int number;
 
-                if (int.TryParse(answer, out number) && number >= 0 && number < currentProject.Packages.Count)
+                if (int.TryParse(answer, out number) && number >= 0 && number < numberOfPackages)
                 {
                     StartWorkOnPackage(state, currentRecord, currentProject.Packages[number]);
                     stop = true;
@@ -359,6 +361,26 @@ namespace PunchItClient
 
                 if(!stop) UserInterface.ClearConsole();
             }
+        }
+
+        private static bool StopReadUserInteraction(string input, int NumberOfPackages)
+        {
+            var allowedLetters = ",+-*eq".ToCharArray();
+            if(allowedLetters.Any(x=> input.Contains(x)))
+            {
+                return true;
+            }
+
+            int number = 0;
+            if (int.TryParse(input, out number))
+            {
+                //It is a number
+                if (input.Length >= NumberOfPackages.ToString().Length)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void ListActions(int indent, Project currentProject, Record currentRecord)
