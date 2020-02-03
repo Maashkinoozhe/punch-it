@@ -1,0 +1,21 @@
+﻿What to do?
+
+Resources to Have:
+* ProjectConfiguration
+* SystemState
+* History
+
+
+Filetree:
+
+// main state config file
+root\state.ini
+
+// project configurations
+root\*.piproject
+
+// Project specific folder
+root\projects\<project name>
+
+// Project related history
+root\project\<project name>\<project abr><Date>.save
