@@ -63,7 +63,7 @@ namespace PunchItClient
         private static void UserInteraction()
         {
             var cachedPermissions = _dataWritePermission;
-            _dataWritePermission = new DataWritePermission(true,true,true);
+            _dataWritePermission = new DataWritePermission(true, true, true);
 
             // This listing represents the Main workflow
             State state = GetState() ?? CreateState();
@@ -122,7 +122,7 @@ namespace PunchItClient
 
             State state = GetState();
 
-            if (state== null)
+            if (state == null)
             {
                 UserInterface.Print("Program seems to have never been started.");
                 return;
@@ -145,7 +145,7 @@ namespace PunchItClient
                     UserInterface.Print("Package key <" + packageKey + "> is unknown.");
                     return;
                 }
-                StartWorkOnPackage(state,currentRecord,packageObject);
+                StartWorkOnPackage(state, currentRecord, packageObject);
             }
 
             _dataWritePermission = cachedPermissions;
@@ -322,11 +322,13 @@ namespace PunchItClient
             var stop = false;
             while (!stop)
             {
-                // List Actions
-                ListActions(2, currentProject, currentRecord);
+                //List current work state
+                ListCurrentWorkState(2, currentProject, currentRecord, currentRecord.LastOpenEntry());
+                //List actions
+                ListActions(2, currentProject, currentRecord, currentRecord.LastOpenEntry());
 
                 var numberOfPackages = currentProject.Packages.Count;
-                var answer = UserInterface.GetUserChar(1, "Select on what to do",null,x=> StopReadUserInteraction(x,numberOfPackages),"please type sensible things > ? <",numberOfPackages.ToString().Length);
+                var answer = UserInterface.GetUserChar(1, "Select on what to do", null, x => StopReadUserInteraction(x, numberOfPackages), "please type sensible things > ? <", numberOfPackages.ToString().Length);
 
                 int number;
 
@@ -361,37 +363,13 @@ namespace PunchItClient
                     stop = true;
                 }
 
-                if(!stop) UserInterface.ClearConsole();
+                if (!stop) UserInterface.ClearConsole();
             }
         }
 
-        private static bool StopReadUserInteraction(string input, int NumberOfPackages)
+        private static void ListCurrentWorkState(int indent, Project currentProject, Record currentRecord, RecordEntry lastOpenEntry)
         {
-            var allowedLetters = ",+-*eq".ToCharArray();
-            if(allowedLetters.Any(x=> input.Contains(x)))
-            {
-                return true;
-            }
-
-            int number = 0;
-            if (int.TryParse(input, out number))
-            {
-                //It is a number
-                if (input.Length >= NumberOfPackages.ToString().Length)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static void ListActions(int indent, Project currentProject, Record currentRecord)
-        {
-            var lastOpenEntry = currentRecord.LastOpenEntry();
-
-            var indentInfo = indent-1;
-            UserInterface.Print(indentInfo, "What do you want to do?");
-            UserInterface.Print("");
+            var indentInfo = indent - 1;
 
             if (lastOpenEntry != null)
             {
@@ -409,9 +387,16 @@ namespace PunchItClient
                 UserInterface.Print("");
                 UserInterface.Print(indentInfo, $"You are currently working on - [ {lastOpenEntry.PackageKey} ] for {currentPackage.Hours:#0} hours {currentPackage.Minutes:#0.#} minutes");
                 UserInterface.Print("");
+                UserInterface.Print("        -------------------------------------------------------------------------------");  
                 UserInterface.Print("");
             }
 
+            UserInterface.Print(indentInfo, "What do you want to do?");
+            UserInterface.Print("");
+        }
+
+        private static void ListActions(int indent, Project currentProject, Record currentRecord, RecordEntry lastOpenEntry)
+        {
             //Start working on a package
             foreach (Package package in currentProject.Packages)
             {
@@ -446,6 +431,26 @@ namespace PunchItClient
             UserInterface.Print(indent + 1, $"> q < \t quit \"Punch It!\"");
 
             UserInterface.Print("");
+        }
+
+        private static bool StopReadUserInteraction(string input, int NumberOfPackages)
+        {
+            var allowedLetters = ",+-*eq".ToCharArray();
+            if (allowedLetters.Any(x => input.Contains(x)))
+            {
+                return true;
+            }
+
+            int number = 0;
+            if (int.TryParse(input, out number))
+            {
+                //It is a number
+                if (input.Length >= NumberOfPackages.ToString().Length)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void StartWorkOnPackage(State state, Record record, Package package)
