@@ -370,8 +370,19 @@ namespace PunchItClient
 
             if (lastOpenEntry != null)
             {
-                var currentWorkingTime = (DateTime.Now - lastOpenEntry.Start).Value;
-                UserInterface.Print(indent, $"You are currently working on - [ {lastOpenEntry.PackageKey} ] for {currentWorkingTime.Hours:#0} hours {currentWorkingTime.Minutes:#0.#} minutes");
+                var currentDay = currentRecord.GetWorkingTime();
+                var currentWorkDay = currentRecord.GetWorkingTime(currentProject, true, false);
+                var currentWorkDayPause = currentRecord.GetWorkingTime(currentProject, false, true);
+                var restWorkDay = TimeSpan.FromHours(8) - currentWorkDay;
+                var currentPackage = (DateTime.Now - lastOpenEntry.Start).Value;
+
+                UserInterface.Print(indent, $"Your day so far              - [ ALL   ] --> {currentDay.Hours:#0} hours {currentDay.Minutes:#0.#} minutes");
+                UserInterface.Print(indent, $"Your work day so far         - [ WORK  ] --> {currentWorkDay.Hours:#0} hours {currentWorkDay.Minutes:#0.#} minutes");
+                UserInterface.Print(indent, $"Your work day so far         - [ PAUSE ] --> {currentWorkDayPause.Hours:#0} hours {currentWorkDayPause.Minutes:#0.#} minutes");
+                UserInterface.Print("");
+                UserInterface.Print(indent, $"Rest of your working hours   - [ REST  ] --> {restWorkDay.Hours:#0} hours {restWorkDay.Minutes:#0.#} minutes");
+                UserInterface.Print("");
+                UserInterface.Print(indent, $"You are currently working on - [ {lastOpenEntry.PackageKey} ] for {currentPackage.Hours:#0} hours {currentPackage.Minutes:#0.#} minutes");
                 UserInterface.Print("");
             }
 
