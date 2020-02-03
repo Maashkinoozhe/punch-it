@@ -11,5 +11,6 @@ namespace PIModel
         public string Key { get; set; }
         public string Abbreviation { get; set; }
         public string DisplayName { get; set; }
+        public bool RelevantForTimeTracking { get; set; }
     }
 }

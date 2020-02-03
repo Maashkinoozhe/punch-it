@@ -389,7 +389,7 @@ namespace PunchItClient
             //Start working on a package
             foreach (Package package in currentProject.Packages)
             {
-                UserInterface.Print(indent + 1, $"> {currentProject.Packages.IndexOf(package)} < \t start working on - [ {package.Abbreviation}, \t {package.DisplayName} ]");
+                UserInterface.Print(indent + 1, $"> {currentProject.Packages.IndexOf(package)} < \t start working on - [{(package.RelevantForTimeTracking ? "X" : "O")}| {package.Abbreviation}, \t {package.DisplayName} ]");
             }
             UserInterface.Print("");
 
@@ -476,20 +476,23 @@ namespace PunchItClient
         {
             var package = new Package();
 
-            var question = "What is the Project KEY?";
+            var question = "What is the Package KEY?";
             Func<string, bool> validator = x => !knownPackages.Any(y => y.Key.Equals(x));
             var allowedInputs = $"The following Keys are already in use:\n{string.Join("\n", knownPackages.Select(pack => pack.Key))}";
             package.Key = UserInterface.GetUserString(1, question, validator, allowedInputs);
 
-            question = "What is the Project Abbreviation?";
+            question = "What is the Package Abbreviation?";
             validator = x => !knownPackages.Where(p => !string.IsNullOrEmpty(p.Abbreviation)).Any(y => y.Abbreviation.Equals(x));
             allowedInputs = $"The following Abbreviations are already in use:\n{string.Join("\n", knownPackages.Select(pack => pack.Abbreviation))}";
             package.Abbreviation = UserInterface.GetUserString(1, question, validator, allowedInputs);
 
-            question = "What is the Project DisplayName?";
+            question = "What is the Package DisplayName?";
             validator = x => !knownPackages.Where(p => !string.IsNullOrEmpty(p.DisplayName)).Any(y => y.DisplayName.Equals(x));
             allowedInputs = $"The following Names are already in use:\n{string.Join("\n", knownPackages.Select(pack => pack.DisplayName))}";
             package.DisplayName = UserInterface.GetUserString(1, question, validator, allowedInputs);
+
+            question = "Is this Package relevant for TimeTracking?";
+            package.RelevantForTimeTracking = UserInterface.GetUserConfirmation(1, question);
 
             return package;
         }
