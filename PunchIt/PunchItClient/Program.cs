@@ -494,7 +494,7 @@ namespace PunchItClient
 
         private static Project SwitchProject(State state)
         {
-            var project = SelectExistingProject(state, 0);
+            var project = SelectExistingProject(state, 1);
             var currentRecord = GetCurrentRecord(state) ?? CreateNewRecord(state);
             return project;
         }
