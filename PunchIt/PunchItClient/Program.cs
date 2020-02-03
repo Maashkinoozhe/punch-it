@@ -97,8 +97,10 @@ namespace PunchItClient
             GetCurrentRecord(state);
 
             var days = SelectTimeSpan();
+            var aggregatePackages = UserInterface.GetUserConfirmation(1, "Aggreagate Packages per Day?");
 
             var exporter = new Exporter(project, DateTime.Now - TimeSpan.FromDays(days), DateTime.Now);
+            exporter.AggregatePackages = aggregatePackages;
             var export = exporter.CreateExport();
 
             var manager = new ExportManager();
@@ -403,7 +405,7 @@ namespace PunchItClient
                 UserInterface.Print(indentInfo, $"Your work day so far         - [ WORK  ] --> {currentWorkDay.Hours:#0} hours {currentWorkDay.Minutes:#0.#} minutes");
                 UserInterface.Print(indentInfo, $"Your work day so far         - [ PAUSE ] --> {currentWorkDayPause.Hours:#0} hours {currentWorkDayPause.Minutes:#0.#} minutes");
                 UserInterface.Print("");
-                UserInterface.Print(indentInfo, $"Rest of your working hours   - [ REST  ] --> {restWorkDay.Hours:#0} hours {restWorkDay.Minutes:#0.#} minutes");
+                UserInterface.Print(indentInfo, $"Rest of your working hours   - [ REST  ] --> {restWorkDay.Hours:#0} hours {restWorkDay.Minutes:#0.#} minutes ({(DateTime.Now + restWorkDay).ToShortTimeString()})");
                 UserInterface.Print("");
                 UserInterface.Print(indentInfo, $"You are currently working on - [ {lastOpenEntry.PackageKey} ] for {currentPackage.Hours:#0} hours {currentPackage.Minutes:#0.#} minutes");
                 UserInterface.Print("");
