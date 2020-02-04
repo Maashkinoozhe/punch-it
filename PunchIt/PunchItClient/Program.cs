@@ -371,14 +371,12 @@ namespace PunchItClient
         {
             var indentInfo = indent - 1;
 
-            if (lastOpenEntry != null)
+            if (currentRecord.RecordEntries.Any())
             {
                 var currentDay = currentRecord.GetWorkingTime();
                 var currentWorkDay = currentRecord.GetWorkingTime(currentProject, true, false);
                 var currentWorkDayPause = currentRecord.GetWorkingTime(currentProject, false, true);
                 var restWorkDay = TimeSpan.FromHours(8) - currentWorkDay;
-                var currentPackage = (lastOpenEntry.Duration);
-                var currentPackageTotal = TimeSpan.FromSeconds( currentRecord.RecordEntries.Where(x=>x.PackageKey == lastOpenEntry.PackageKey).Sum(y=>y.Duration.TotalSeconds));
 
                 UserInterface.Print(indentInfo, $"Your day so far              - [ ALL   ] --> {currentDay.Hours:00}:{currentDay.Minutes:00} (hh:mm)");
                 UserInterface.Print(indentInfo, $"Your work day so far         - [ WORK  ] --> {currentWorkDay.Hours:00}:{currentWorkDay.Minutes:00}");
@@ -386,9 +384,23 @@ namespace PunchItClient
                 UserInterface.Print("");
                 UserInterface.Print(indentInfo, $"Rest of your working hours   - [ REST  ] --> {restWorkDay.Hours:00}:{restWorkDay.Minutes:00} ({(DateTime.Now + restWorkDay).ToShortTimeString()} o'clock)");
                 UserInterface.Print("");
-                UserInterface.Print(indentInfo, $"You are currently working on - [ {lastOpenEntry.PackageKey} ] --> {currentPackage.Hours:00}:{currentPackage.Minutes:00} (total: {currentPackageTotal.Hours:00}:{currentPackageTotal.Minutes:00})");
+
+                if (lastOpenEntry != null)
+                {
+                    var currentPackage = (lastOpenEntry.Duration);
+                    var currentPackageTotal = TimeSpan.FromSeconds(currentRecord.RecordEntries.Where(x => x.PackageKey == lastOpenEntry.PackageKey).Sum(y => y.Duration.TotalSeconds));
+
+                    UserInterface.PrintSameLine(indentInfo, $"You are currently working on - [");
+                    UserInterface.PrintSameLine(0, $" {lastOpenEntry.PackageKey} ", ConsoleColor.Red);
+                    UserInterface.PrintSameLine(0, $"] --> ");
+                    UserInterface.PrintSameLine(0, $"{currentPackage.Hours:00}:{currentPackage.Minutes:00}", ConsoleColor.Yellow);
+                    UserInterface.PrintSameLine(0, $" (total: ");
+                    UserInterface.PrintSameLine(0, $"{currentPackageTotal.Hours:00}:{currentPackageTotal.Minutes:00}", ConsoleColor.Green);
+                    UserInterface.Print(0, $")");
+                }
+
                 UserInterface.Print("");
-                UserInterface.Print("        -------------------------------------------------------------------------------");  
+                UserInterface.Print("        -------------------------------------------------------------------------------");
                 UserInterface.Print("");
             }
 
@@ -401,7 +413,9 @@ namespace PunchItClient
             //Start working on a package
             foreach (Package package in currentProject.Packages)
             {
-                UserInterface.Print(indent + 1, $"> {currentProject.Packages.IndexOf(package)} < \t [{(package.RelevantForTimeTracking ? "X" : "O")}| {package.Abbreviation}, \t {package.DisplayName} ]");
+                UserInterface.PrintSameLine(indent + 1, $"> ");
+                UserInterface.PrintSameLine(0, $"{currentProject.Packages.IndexOf(package)}", ConsoleColor.Blue);
+                UserInterface.Print(0, $" < \t [{(package.RelevantForTimeTracking ? "X" : "O")}| {package.Abbreviation}, \t {package.DisplayName} ]");
             }
             UserInterface.Print("");
             UserInterface.Print("");
