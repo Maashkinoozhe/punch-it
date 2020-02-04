@@ -149,16 +149,40 @@ namespace PunchItClient
             Print(0, message);
         }
 
-        public static void Print(int indent, string message)
+        public static void Print(int indent, string message, ConsoleColor? textColor = null, ConsoleColor? backgroundColor = null)
         {
             var padding = string.Concat(Enumerable.Repeat("\t", indent));
+
+            SetColor(textColor, backgroundColor);
             Console.Out.WriteLine(padding + message);
+            ResetColor();
         }
 
-        public static void PrintSameLine(int indent, string message)
+        public static void PrintSameLine(int indent, string message, ConsoleColor? textColor = null, ConsoleColor? backgroundColor = null)
         {
             var padding = string.Concat(Enumerable.Repeat("\t", indent));
+
+            SetColor(textColor, backgroundColor);
             Console.Out.Write(padding + message);
+            ResetColor();
+        }
+
+        private static void SetColor(ConsoleColor? textColor, ConsoleColor? backgroundColor)
+        {
+            if (textColor.HasValue)
+            {
+                Console.ForegroundColor = textColor.Value;
+            }
+
+            if (backgroundColor.HasValue)
+            {
+                Console.BackgroundColor = backgroundColor.Value;
+            }
+        }
+
+        private static void ResetColor()
+        {
+            Console.ResetColor();
         }
 
         public static void ClearConsole()
