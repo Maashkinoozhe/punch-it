@@ -377,15 +377,16 @@ namespace PunchItClient
                 var currentWorkDay = currentRecord.GetWorkingTime(currentProject, true, false);
                 var currentWorkDayPause = currentRecord.GetWorkingTime(currentProject, false, true);
                 var restWorkDay = TimeSpan.FromHours(8) - currentWorkDay;
-                var currentPackage = (DateTime.Now - lastOpenEntry.Start).Value;
+                var currentPackage = (lastOpenEntry.Duration);
+                var currentPackageTotal = TimeSpan.FromSeconds( currentRecord.RecordEntries.Where(x=>x.PackageKey == lastOpenEntry.PackageKey).Sum(y=>y.Duration.TotalSeconds));
 
-                UserInterface.Print(indentInfo, $"Your day so far              - [ ALL   ] --> {currentDay.Hours:#0} hours {currentDay.Minutes:#0.#} minutes");
-                UserInterface.Print(indentInfo, $"Your work day so far         - [ WORK  ] --> {currentWorkDay.Hours:#0} hours {currentWorkDay.Minutes:#0.#} minutes");
-                UserInterface.Print(indentInfo, $"Your work day so far         - [ PAUSE ] --> {currentWorkDayPause.Hours:#0} hours {currentWorkDayPause.Minutes:#0.#} minutes");
+                UserInterface.Print(indentInfo, $"Your day so far              - [ ALL   ] --> {currentDay.Hours:00}:{currentDay.Minutes:00} (hh:mm)");
+                UserInterface.Print(indentInfo, $"Your work day so far         - [ WORK  ] --> {currentWorkDay.Hours:00}:{currentWorkDay.Minutes:00}");
+                UserInterface.Print(indentInfo, $"Your work day so far         - [ PAUSE ] --> {currentWorkDayPause.Hours:00}:{currentWorkDayPause.Minutes:00}");
                 UserInterface.Print("");
-                UserInterface.Print(indentInfo, $"Rest of your working hours   - [ REST  ] --> {restWorkDay.Hours:#0} hours {restWorkDay.Minutes:#0.#} minutes ({(DateTime.Now + restWorkDay).ToShortTimeString()})");
+                UserInterface.Print(indentInfo, $"Rest of your working hours   - [ REST  ] --> {restWorkDay.Hours:00}:{restWorkDay.Minutes:00} ({(DateTime.Now + restWorkDay).ToShortTimeString()} o'clock)");
                 UserInterface.Print("");
-                UserInterface.Print(indentInfo, $"You are currently working on - [ {lastOpenEntry.PackageKey} ] for {currentPackage.Hours:#0} hours {currentPackage.Minutes:#0.#} minutes");
+                UserInterface.Print(indentInfo, $"You are currently working on - [ {lastOpenEntry.PackageKey} ] --> {currentPackage.Hours:00}:{currentPackage.Minutes:00} (total: {currentPackageTotal.Hours:00}:{currentPackageTotal.Minutes:00})");
                 UserInterface.Print("");
                 UserInterface.Print("        -------------------------------------------------------------------------------");  
                 UserInterface.Print("");
@@ -400,7 +401,7 @@ namespace PunchItClient
             //Start working on a package
             foreach (Package package in currentProject.Packages)
             {
-                UserInterface.Print(indent + 1, $"> {currentProject.Packages.IndexOf(package)} < \t [{(package.RelevantForTimeTracking ? "X" : "O")}| {package.Abbreviation}, \t {package.DisplayName} ] <- start working on it ");
+                UserInterface.Print(indent + 1, $"> {currentProject.Packages.IndexOf(package)} < \t [{(package.RelevantForTimeTracking ? "X" : "O")}| {package.Abbreviation}, \t {package.DisplayName} ]");
             }
             UserInterface.Print("");
             UserInterface.Print("");
