@@ -10,7 +10,7 @@ This project is in an early state. There are not a lot of features but this vers
 
 Usage
 -----
-
+```
 PunchItClient.exe
         -h      --help                   Print this help.
         -e      --export                 Run in export mode, export saved records into csv formatted file.
@@ -18,3 +18,4 @@ PunchItClient.exe
                                          active project if the day has started(no RecordEntries created so far)
                 usage    -s <PackageKey>
                 usage    --start-work <PackageKey>
+```
