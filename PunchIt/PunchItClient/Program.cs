@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
@@ -573,6 +574,10 @@ namespace PunchItClient
 
             ListTodaysActivities(currentProject, currentRecord, useAggregation);
             UserInterface.Print(0, "");
+            UserInterface.Print(1, "-------------------------------------");
+            UserInterface.Print(0, "");
+            PrintTotal(currentProject, currentRecord);
+            UserInterface.Print(0, "");
             UserInterface.Print(0, "");
 
             UserInterface.Pause();
@@ -622,6 +627,14 @@ namespace PunchItClient
                 UserInterface.PrintSameLine(0, $"{entry.PackageKey}", ConsoleColor.Red);
                 UserInterface.Print(0, " ]");
             }
+        }
+
+        private static void PrintTotal(Project currentProject, Record currentRecord)
+        {
+            var duration = TimeSpan.FromMinutes(currentRecord.RecordEntries.Where(y => (currentProject.Packages.FirstOrDefault(z => z.Key == y.PackageKey) != null) ? (currentProject.Packages.FirstOrDefault(z => z.Key == y.PackageKey).RelevantForTimeTracking) : true).Sum(x => x.Duration.TotalMinutes));
+
+            UserInterface.PrintSameLine(2, "Total: ");
+            UserInterface.Print(0, $"{duration.Hours:00}:{duration.Minutes:00}", ConsoleColor.Cyan);
         }
     }
 }
