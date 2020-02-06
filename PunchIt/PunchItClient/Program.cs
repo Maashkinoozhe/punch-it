@@ -354,6 +354,10 @@ namespace PunchItClient
                 {
                     currentProject = SwitchProject(state);
                 }
+                else if (answer.Equals("l"))
+                {
+                    ListTodaysActivities(state, currentProject, currentRecord);
+                }
                 else if (answer.Equals("e"))
                 {
                     ExportAction();
@@ -441,6 +445,9 @@ namespace PunchItClient
 
             //export project
             UserInterface.Print(indent + 1, $"> e < \t export a project");
+
+            //export project
+            UserInterface.Print(indent + 1, $"> l < \t list todays activities");
 
             //end Punch It!
             UserInterface.Print(indent + 1, $"> q < \t quit \"Punch It!\"");
@@ -558,6 +565,63 @@ namespace PunchItClient
             var project = SelectExistingProject(state, 1);
             var currentRecord = GetCurrentRecord(state) ?? CreateNewRecord(state);
             return project;
+        }
+
+        private static void ListTodaysActivities(State state, Project currentProject, Record currentRecord)
+        {
+            var useAggregation = UserInterface.GetUserConfirmation(1, "Do you want to aggregate packages?");
+
+            ListTodaysActivities(currentProject, currentRecord, useAggregation);
+            UserInterface.Print(0, "");
+            UserInterface.Print(0, "");
+
+            UserInterface.Pause();
+        }
+
+        private static void ListTodaysActivities(Project currentProject, Record currentRecord, bool useAggregation)
+        {
+            if (useAggregation)
+            {
+                ListTodaysActivitiesAggregated(currentProject, currentRecord);
+            }
+            else
+            {
+                ListTodaysActivitiesFull(currentProject, currentRecord);
+            }
+        }
+
+        private static void ListTodaysActivitiesAggregated(Project currentProject, Record currentRecord)
+        {
+            foreach (var entryGroup in currentRecord.RecordEntries.GroupBy(x => x.PackageKey))
+            {
+                var duration = TimeSpan.FromMinutes(entryGroup.Sum(x => x.Duration.TotalMinutes));
+
+                UserInterface.PrintSameLine(2, "Total: ");
+                UserInterface.PrintSameLine(0, $"{duration.Hours:00}:{duration.Minutes:00}", ConsoleColor.Green);
+                UserInterface.PrintSameLine(0, " --> [ ");
+                UserInterface.PrintSameLine(0, $"{entryGroup.Key}", ConsoleColor.Red);
+                UserInterface.Print(0, " ]");
+            }
+        }
+
+        private static void ListTodaysActivitiesFull(Project currentProject, Record currentRecord)
+        {
+            foreach (var entry in currentRecord.RecordEntries)
+            {
+                var start = entry.Start.Value;
+                var end = entry.Start.Value.Add(entry.Duration);
+                var duration = entry.Duration;
+
+                UserInterface.PrintSameLine(2, "From: ");
+                UserInterface.PrintSameLine(0, $"{start.Hour:00}:{start.Minute:00}", ConsoleColor.Yellow);
+                UserInterface.PrintSameLine(0, " To: ");
+                UserInterface.PrintSameLine(0, $"{end.Hour:00}:{end.Minute:00}", ConsoleColor.Yellow);
+                UserInterface.PrintSameLine(0, " Total: ");
+                UserInterface.PrintSameLine(0, $"{duration.Hours:00}:{duration.Minutes:00}", ConsoleColor.Green);
+                UserInterface.PrintSameLine(0, " --> [ ");
+                UserInterface.PrintSameLine(0, $"{entry.PackageKey}", ConsoleColor.Red);
+                UserInterface.Print(0, " ]");
+            }
         }
     }
 }

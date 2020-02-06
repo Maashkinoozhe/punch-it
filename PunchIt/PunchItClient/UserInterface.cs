@@ -189,5 +189,11 @@ namespace PunchItClient
         {
             Console.Clear();
         }
+
+        public static void Pause()
+        {
+            PrintSameLine(0,"Press any Key to continue.");
+            Console.ReadKey();
+        }
     }
 }
