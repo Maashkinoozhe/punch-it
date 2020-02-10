@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataWritePermission.cs" />
+    <Compile Include="EditRecordsInteractiveMode.cs" />
     <Compile Include="FrameSegment.cs" />
     <Compile Include="InteractiveModeViewAdapter.cs" />
     <Compile Include="Program.cs" />

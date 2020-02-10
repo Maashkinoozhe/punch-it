@@ -19,6 +19,8 @@ namespace PunchItClient
 
         static void Main(string[] args)
         {
+            UserInterface.Init();
+
             if (args.Length > 0)
             {
                 if (args[0] == "-h" || args[0] == "--help")
@@ -361,6 +363,10 @@ namespace PunchItClient
                 }
                 else if (answer.Equals("e"))
                 {
+                    EditRecordEntries(state, currentProject, currentRecord);
+                }
+                else if (answer.Equals("x"))
+                {
                     ExportAction();
                 }
                 else if (answer.Equals("q"))
@@ -423,7 +429,6 @@ namespace PunchItClient
                 UserInterface.Print(0, $" < \t [{(package.RelevantForTimeTracking ? "X" : "O")}| {package.Abbreviation}, \t {package.DisplayName} ]");
             }
             UserInterface.Print("");
-            UserInterface.Print("");
 
             if (lastOpenEntry != null)
             {
@@ -445,10 +450,13 @@ namespace PunchItClient
             UserInterface.Print(indent + 1, $"> * < \t switch project");
 
             //export project
-            UserInterface.Print(indent + 1, $"> e < \t export a project");
+            UserInterface.Print(indent + 1, $"> x < \t export a project");
 
             //export project
             UserInterface.Print(indent + 1, $"> l < \t list todays activities");
+
+            //export project
+            UserInterface.Print(indent + 1, $"> e < \t edit todays activities");
 
             //end Punch It!
             UserInterface.Print(indent + 1, $"> q < \t quit \"Punch It!\"");
@@ -458,7 +466,7 @@ namespace PunchItClient
 
         private static bool StopReadUserInteraction(string input, int NumberOfPackages)
         {
-            var allowedLetters = ",+-*eq".ToCharArray();
+            var allowedLetters = ",+-*eqlx".ToCharArray();
             if (allowedLetters.Any(x => input.Contains(x)))
             {
                 return true;
@@ -635,6 +643,13 @@ namespace PunchItClient
 
             UserInterface.PrintSameLine(2, "Total: ");
             UserInterface.Print(0, $"{duration.Hours:00}:{duration.Minutes:00}", ConsoleColor.Cyan);
+        }
+
+        private static void EditRecordEntries(State state, Project currentProject, Record currentRecord)
+        {
+            var adapter = new EditRecordsInteractiveMode(currentRecord);
+            UserInterface.RunUserInteractiveMode(adapter);
+            SaveRecord(state,currentRecord);
         }
     }
 }
