@@ -1,11 +1,17 @@
 ﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace PunchItClient
 {
     public class UserInterface
     {
+        public static void Init()
+        {
+            Console.OutputEncoding=Encoding.UTF8;
+        }
+
         public static string GetUserString(int indent, string question)
         {
             return GetUserString(indent, question, null, null);
@@ -144,6 +150,36 @@ namespace PunchItClient
             return null;
         }
 
+        public static void RunUserInteractiveMode(IInteractiveModeViewAdapter adapter)
+        {
+            while (!adapter.IsDone())
+            {
+                var segments = adapter.GetFrameSegments();
+                Console.Clear();
+                foreach (var segment in segments)
+                {
+                    Console.ResetColor();
+                    if (segment.ColorF.HasValue) Console.ForegroundColor = segment.ColorF.Value;
+                    if (segment.ColorB.HasValue) Console.ForegroundColor = segment.ColorB.Value;
+                    Console.Write(segment.Text);
+                }
+
+                InteractiveUserAction? action = null;
+                while (!action.HasValue)
+                {
+                    var key = Console.ReadKey();
+                    if (key.Key == ConsoleKey.UpArrow) action = InteractiveUserAction.Up;
+                    if (key.Key == ConsoleKey.DownArrow) action = InteractiveUserAction.Down;
+                    if (key.Key == ConsoleKey.LeftArrow) action = InteractiveUserAction.Left;
+                    if (key.Key == ConsoleKey.RightArrow) action = InteractiveUserAction.Right;
+                    if (key.Key == ConsoleKey.PageUp) action = InteractiveUserAction.PageUp;
+                    if (key.Key == ConsoleKey.PageDown) action = InteractiveUserAction.PageDown;
+                    if (key.Key == ConsoleKey.Q) action = InteractiveUserAction.Quit;
+                }
+                adapter.HandleUserAction(action.Value);
+            }
+        }
+
         public static void Print(string message)
         {
             Print(0, message);
@@ -192,7 +228,7 @@ namespace PunchItClient
 
         public static void Pause()
         {
-            PrintSameLine(0,"Press any Key to continue.");
+            PrintSameLine(0, "Press any Key to continue.");
             Console.ReadKey();
         }
     }
