@@ -43,12 +43,19 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DataWritePermission.cs" />
+    <Compile Include="Actions\SelectableUserAction.cs" />
+    <Compile Include="Actions\SelectExistingProject.cs" />
+    <Compile Include="Actions\ShowHelp.cs" />
+    <Compile Include="Actions\StartWorkOnPackage.cs" />
+    <Compile Include="PersistenceBackend\DataWritePermission.cs" />
     <Compile Include="EditRecordsInteractiveMode.cs" />
     <Compile Include="FrameSegment.cs" />
     <Compile Include="InteractiveModeViewAdapter.cs" />
+    <Compile Include="PersistenceBackend\DataAccess.cs" />
+    <Compile Include="PrimaryUserInteractionControl.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Actions\UserActionBase.cs" />
     <Compile Include="UserInterface.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -71,5 +78,6 @@
       <Name>PIModel</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

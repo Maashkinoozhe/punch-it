@@ -10,22 +10,25 @@ using System.Xml.Serialization;
 using PIExport;
 using PIModel;
 using PIModelFileAccess;
+using PunchItClient.Actions;
+using PunchItClient.PersistenceBackend;
 
 namespace PunchItClient
 {
     class Program
     {
-        private static DataWritePermission _dataWritePermission;
+        private static DataAccess _dataAccess = new DataAccess();
 
         static void Main(string[] args)
         {
             UserInterface.Init();
+            var showHelpAction = new ShowHelp(null,null,null,null,0,"-h","--help");
 
             if (args.Length > 0)
             {
-                if (args[0] == "-h" || args[0] == "--help")
+                if (showHelpAction.MatchesIdentifier(args[0]))
                 {
-                    ShowHelp();
+                    showHelpAction.Run();
                 }
                 else if (args[0] == "-e" || args[0] == "--export")
                 {
@@ -45,31 +48,13 @@ namespace PunchItClient
             return;
         }
 
-        private static void ShowHelp()
-        {
-            UserInterface.Print("");
-            UserInterface.Print("This is \"Punch It!\"");
-            UserInterface.Print("");
-
-            UserInterface.Print("\t-h\t--help\t\t\t Print this help.");
-
-            UserInterface.Print("\t-e\t--export\t\t Run in export mode, export saved records into csv formatted file.");
-
-            UserInterface.Print("\t-s\t--start-work\t\t Start working on a package in the currently)");
-            UserInterface.Print("\t\t\t\t\t active project if the day has started(no RecordEntries created so far)");
-            UserInterface.Print("\t\tusage\t -s <PackageKey>");
-            UserInterface.Print("\t\tusage\t --start-work <PackageKey>");
-
-            UserInterface.Print("");
-        }
-
         private static void UserInteraction()
         {
-            var cachedPermissions = _dataWritePermission;
-            _dataWritePermission = new DataWritePermission(true, true, true);
+            var cachedPermissions = _dataAccess.DataWritePermission;
+            _dataAccess.DataWritePermission = new DataWritePermission(true, true, true);
 
             // This listing represents the Main workflow
-            State state = GetState() ?? CreateState();
+            State state = _dataAccess.GetState() ?? _dataAccess.CreateState();
 
             //UserInterface.Print(2, "Welcome to \"Punch It!\"");
             //UserInterface.Print("");
@@ -79,25 +64,26 @@ namespace PunchItClient
             Project currentProject = null;
             while (currentProject == null)
             {
-                currentProject = (GetCurrentProject(state) ?? CreateProject(state, 1)) ?? SelectExistingProject(state, 1);
+                currentProject = (_dataAccess.GetCurrentProject(state) ?? CreateProject(state, 1)) ?? SelectExistingProject(state);
             }
 
-            Record currentRecord = GetCurrentRecord(state) ?? CreateNewRecord(state);
+            Record currentRecord = _dataAccess.GetCurrentRecord(state) ?? _dataAccess.CreateNewRecord(state);
 
             //Users can start logging work now
             HandleUserInteraction(state, currentProject, currentRecord);
 
-            _dataWritePermission = cachedPermissions;
+            _dataAccess.DataWritePermission = cachedPermissions;
         }
 
-        private static void ExportAction()
+        public static void ExportAction()
         {
-            var cachedPermissions = _dataWritePermission;
-            _dataWritePermission = new DataWritePermission(false, false, false);
+            var cachedPermissions = _dataAccess.DataWritePermission;
+            _dataAccess.DataWritePermission = new DataWritePermission(false, false, false);
 
-            State state = CreateState();
-            Project project = SelectExistingProject(state, 1);
-            GetCurrentRecord(state);
+            State state = _dataAccess.CreateState();
+            var project = SelectExistingProject(state);
+
+            _dataAccess.GetCurrentRecord(state);
 
             var days = SelectTimeSpan();
             var aggregatePackages = UserInterface.GetUserConfirmation(1, "Aggreagate Packages per Day?");
@@ -109,13 +95,13 @@ namespace PunchItClient
             var manager = new ExportManager();
             manager.SaveExport(state, project, export);
 
-            _dataWritePermission = cachedPermissions;
+            _dataAccess.DataWritePermission = cachedPermissions;
         }
 
-        private static void StartWork(string packageKey)
+        public static void StartWork(string packageKey)
         {
-            var cachedPermissions = _dataWritePermission;
-            _dataWritePermission = new DataWritePermission(false, false, true);
+            var cachedPermissions = _dataAccess.DataWritePermission;
+            _dataAccess.DataWritePermission = new DataWritePermission(false, false, true);
 
             if (string.IsNullOrEmpty(packageKey))
             {
@@ -123,14 +109,14 @@ namespace PunchItClient
                 return;
             }
 
-            State state = GetState();
+            State state = _dataAccess.GetState();
 
             if (state == null)
             {
                 UserInterface.Print("Program seems to have never been started.");
                 return;
             }
-            Project project = GetCurrentProject(state);
+            Project project = _dataAccess.GetCurrentProject(state);
 
             if (project == null)
             {
@@ -138,7 +124,7 @@ namespace PunchItClient
                 return;
             }
 
-            Record currentRecord = GetCurrentRecord(state) ?? CreateNewRecord(state);
+            Record currentRecord = _dataAccess.GetCurrentRecord(state) ?? _dataAccess.CreateNewRecord(state);
 
             if (!currentRecord.RecordEntries.Any())
             {
@@ -148,10 +134,10 @@ namespace PunchItClient
                     UserInterface.Print("Package key <" + packageKey + "> is unknown.");
                     return;
                 }
-                StartWorkOnPackage(state, currentRecord, packageObject);
+                _dataAccess.StartWorkOnPackage(state, currentRecord, packageObject);
             }
 
-            _dataWritePermission = cachedPermissions;
+            _dataAccess.DataWritePermission = cachedPermissions;
         }
 
         private static int SelectTimeSpan()
@@ -163,69 +149,6 @@ namespace PunchItClient
                 " -> days: ");
 
             return days;
-        }
-
-        private static State GetState()
-        {
-            var manager = new StateManager();
-            var state = manager.LoadState(System.IO.Directory.GetCurrentDirectory() + "\\");
-            return state;
-        }
-
-        private static State CreateState()
-        {
-            var state = new State(null);
-            SaveState(state);
-            return state;
-        }
-
-        private static void SaveState(State state)
-        {
-            if (_dataWritePermission.UpdateState)
-            {
-                var manager = new StateManager();
-                manager.SaveState(state);
-            }
-        }
-
-        private static Project GetCurrentProject(State state)
-        {
-            var manager = new ProjectManager();
-            var project = manager.LoadProject(state, state.CurrentProjectKey);
-
-            if (project != null) UpdateCurrentProject(state, project);
-
-            return project;
-        }
-
-        private static Project SelectExistingProject(State state, int indent)
-        {
-            var projects = GetProjects(state);
-            Project selectedProject = null;
-            if (projects.Any())
-            {
-                while (selectedProject == null)
-                {
-                    UserInterface.Print(indent, "Select an existing Project:");
-                    projects.ForEach(x => UserInterface.Print(indent + 1, $"#{projects.IndexOf(x)} - {x.Key}, {x.Abbreviation}, {x.DisplayName}"));
-                    var index = UserInterface.GetUserInt(indent - 1,
-                        "",
-                        value => value >= 0 && value < projects.Count,
-                        $"Only numbers between {0} and {projects.Count - 1} are valid!",
-                        " -> #");
-                    selectedProject = projects[index];
-                }
-            }
-
-            UpdateCurrentProject(state, selectedProject);
-            return selectedProject;
-        }
-
-        private static List<Project> GetProjects(State state)
-        {
-            var manager = new ProjectManager();
-            var projects = manager.LoadAllProject(state);
-            return projects;
         }
 
         private static Project CreateProject(State state, int indent)
@@ -245,8 +168,8 @@ namespace PunchItClient
 
             if (project != null)
             {
-                SaveProject(state, project);
-                UpdateCurrentProject(state, project);
+                _dataAccess.SaveProject(state, project);
+                _dataAccess.UpdateCurrentProject(state, project);
             }
 
             return project;
@@ -267,389 +190,17 @@ namespace PunchItClient
             return project;
         }
 
-        private static void UpdateCurrentProject(State state, Project project)
-        {
-            state.SetCurrentProject(project);
-            SaveState(state);
-        }
-
-        private static void SaveProject(State state, Project project)
-        {
-            if (_dataWritePermission.UpdateProject)
-            {
-                var manager = new ProjectManager();
-                manager.SaveProject(state, project);
-            }
-        }
-
-        private static Record GetCurrentRecord(State state)
-        {
-            var manager = new RecordManager();
-            var records = manager.LoadRecords(state);
-
-            Record currentRecord = null;
-            var mostRecentRecord = records?.LastOrDefault();
-
-            if (mostRecentRecord != null &&
-                mostRecentRecord.StartOfRecord.Year == DateTime.Now.Year &&
-                mostRecentRecord.StartOfRecord.DayOfYear == DateTime.Now.DayOfYear)
-            {
-                currentRecord = mostRecentRecord;
-            }
-
-            return currentRecord;
-        }
-
-        private static Record CreateNewRecord(State state)
-        {
-            var record = new Record(DateTime.Now);
-
-            if (state.CurrentProject.Records == null) state.CurrentProject.Records = new List<Record>();
-            state.CurrentProject.Records.Add(record);
-
-            SaveRecord(state, record);
-            return record;
-        }
-
-        private static void SaveRecord(State state, Record record)
-        {
-            if (_dataWritePermission.UpdateRecord)
-            {
-                var manager = new RecordManager();
-                manager.SaveRecord(state, state.CurrentProject, record);
-            }
-        }
-
         private static void HandleUserInteraction(State state, Project currentProject, Record currentRecord)
         {
-            var stop = false;
-            while (!stop)
-            {
-                //List current work state
-                ListCurrentWorkState(2, currentProject, currentRecord, currentRecord.LastOpenEntry());
-                //List actions
-                ListActions(2, currentProject, currentRecord, currentRecord.LastOpenEntry());
-
-                var numberOfPackages = currentProject.Packages.Count;
-                var answer = UserInterface.GetUserChar(1, "Select on what to do", null, x => StopReadUserInteraction(x, numberOfPackages), "please type sensible things > ? <", numberOfPackages.ToString().Length);
-
-                int number;
-
-                if (int.TryParse(answer, out number) && number >= 0 && number < numberOfPackages)
-                {
-                    StartWorkOnPackage(state, currentRecord, currentProject.Packages[number]);
-                    stop = true;
-                }
-                else if (answer.Equals(","))
-                {
-                    StopWorkOnOpenPackage(state, currentRecord);
-                    stop = true;
-                }
-                else if (answer.Equals("+"))
-                {
-                    CreateNewPackage(state, currentProject);
-                }
-                else if (answer.Equals("-"))
-                {
-                    DeletePackage(state, currentProject);
-                }
-                else if (answer.Equals("*"))
-                {
-                    currentProject = SwitchProject(state);
-                }
-                else if (answer.Equals("l"))
-                {
-                    ListTodaysActivities(state, currentProject, currentRecord);
-                }
-                else if (answer.Equals("e"))
-                {
-                    EditRecordEntries(state, currentProject, currentRecord);
-                }
-                else if (answer.Equals("x"))
-                {
-                    ExportAction();
-                }
-                else if (answer.Equals("q"))
-                {
-                    stop = true;
-                }
-
-                if (!stop) UserInterface.ClearConsole();
-            }
+            var interactionControl = new PrimaryUserInteractionControl(state,currentProject,currentRecord,_dataAccess);
+            interactionControl.Run();
         }
 
-        private static void ListCurrentWorkState(int indent, Project currentProject, Record currentRecord, RecordEntry lastOpenEntry)
+        private static Project SelectExistingProject(State state)
         {
-            var indentInfo = indent - 1;
-
-            if (currentRecord.RecordEntries.Any())
-            {
-                var currentDay = currentRecord.GetWorkingTime();
-                var currentWorkDay = currentRecord.GetWorkingTime(currentProject, true, false);
-                var currentWorkDayPause = currentRecord.GetWorkingTime(currentProject, false, true);
-                var restWorkDay = TimeSpan.FromHours(8) - currentWorkDay;
-
-                UserInterface.Print(indentInfo, $"Your day so far              - [ ALL   ] --> {currentDay.Hours:00}:{currentDay.Minutes:00} (hh:mm)");
-                UserInterface.Print(indentInfo, $"Your work day so far         - [ WORK  ] --> {currentWorkDay.Hours:00}:{currentWorkDay.Minutes:00}");
-                UserInterface.Print(indentInfo, $"Your work day so far         - [ PAUSE ] --> {currentWorkDayPause.Hours:00}:{currentWorkDayPause.Minutes:00}");
-                UserInterface.Print("");
-                UserInterface.Print(indentInfo, $"Rest of your working hours   - [ REST  ] --> {restWorkDay.Hours:00}:{restWorkDay.Minutes:00} ({(DateTime.Now + restWorkDay).ToShortTimeString()} o'clock)");
-                UserInterface.Print("");
-
-                if (lastOpenEntry != null)
-                {
-                    var currentPackage = (lastOpenEntry.Duration);
-                    var currentPackageTotal = TimeSpan.FromSeconds(currentRecord.RecordEntries.Where(x => x.PackageKey == lastOpenEntry.PackageKey).Sum(y => y.Duration.TotalSeconds));
-
-                    UserInterface.PrintSameLine(indentInfo, $"You are currently working on - [");
-                    UserInterface.PrintSameLine(0, $" {lastOpenEntry.PackageKey} ", ConsoleColor.Red);
-                    UserInterface.PrintSameLine(0, $"] --> ");
-                    UserInterface.PrintSameLine(0, $"{currentPackage.Hours:00}:{currentPackage.Minutes:00}", ConsoleColor.Yellow);
-                    UserInterface.PrintSameLine(0, $" (total: ");
-                    UserInterface.PrintSameLine(0, $"{currentPackageTotal.Hours:00}:{currentPackageTotal.Minutes:00}", ConsoleColor.Green);
-                    UserInterface.Print(0, $")");
-                }
-
-                UserInterface.Print("");
-                UserInterface.Print("        -------------------------------------------------------------------------------");
-                UserInterface.Print("");
-            }
-
-            UserInterface.Print(indentInfo, "What do you want to do?");
-            UserInterface.Print("");
-        }
-
-        private static void ListActions(int indent, Project currentProject, Record currentRecord, RecordEntry lastOpenEntry)
-        {
-            //Start working on a package
-            foreach (Package package in currentProject.Packages)
-            {
-                UserInterface.PrintSameLine(indent + 1, $"> ");
-                UserInterface.PrintSameLine(0, $"{currentProject.Packages.IndexOf(package)}", ConsoleColor.Blue);
-                UserInterface.Print(0, $" < \t [{(package.RelevantForTimeTracking ? "X" : "O")}| {package.Abbreviation}, \t {package.DisplayName} ]");
-            }
-            UserInterface.Print("");
-
-            if (lastOpenEntry != null)
-            {
-                //stop working on open packages
-                UserInterface.Print(indent + 1, $"> , < \t STOP working on the last open Package [ {lastOpenEntry.PackageKey} ]");
-                UserInterface.Print("");
-            }
-
-            //create new package
-            UserInterface.Print(indent + 1, $"> + < \t create new package");
-
-            if (currentProject.Packages.Count > 0)
-            {
-                //delete a package
-                UserInterface.Print(indent + 1, $"> - < \t delete a package(record will be kept)");
-            }
-
-            //switch project
-            UserInterface.Print(indent + 1, $"> * < \t switch project");
-
-            //export project
-            UserInterface.Print(indent + 1, $"> x < \t export a project");
-
-            //export project
-            UserInterface.Print(indent + 1, $"> l < \t list todays activities");
-
-            //export project
-            UserInterface.Print(indent + 1, $"> e < \t edit todays activities");
-
-            //end Punch It!
-            UserInterface.Print(indent + 1, $"> q < \t quit \"Punch It!\"");
-
-            UserInterface.Print("");
-        }
-
-        private static bool StopReadUserInteraction(string input, int NumberOfPackages)
-        {
-            var allowedLetters = ",+-*eqlx".ToCharArray();
-            if (allowedLetters.Any(x => input.Contains(x)))
-            {
-                return true;
-            }
-
-            int number = 0;
-            if (int.TryParse(input, out number))
-            {
-                //It is a number
-                if (input.Length >= NumberOfPackages.ToString().Length)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static void StartWorkOnPackage(State state, Record record, Package package)
-        {
-            var openEntry = record.LastOpenEntry();
-
-            if (openEntry != null)
-            {
-                //update open Entry
-                openEntry.End = DateTime.Now;
-            }
-
-            if (openEntry == null || !openEntry.PackageKey.Equals(package.Key))
-            {
-                //start new Entry
-                var newEntry = new RecordEntry(package.Key);
-                newEntry.Start = DateTime.Now;
-
-                //register Record with new Entry
-                record.RecordEntries.Add(newEntry);
-            }
-            else
-            {
-                //nothing to do, user is already working on this package
-                UserInterface.Print($"You are already working on [ {package.DisplayName} ]");
-                return;
-            }
-
-            //Update Record
-            SaveRecord(state, record);
-        }
-
-        private static void StopWorkOnOpenPackage(State state, Record record)
-        {
-            var openEntry = record.LastOpenEntry();
-
-            if (openEntry != null)
-            {
-                //update open Entry
-                openEntry.End = DateTime.Now;
-            }
-
-            //Update Record
-            SaveRecord(state, record);
-        }
-
-        private static void CreateNewPackage(State state, Project currentProject)
-        {
-            var newPackage = CreatePackageDetails(currentProject.Packages);
-            currentProject.Packages.Add(newPackage);
-            SaveProject(state, currentProject);
-        }
-
-        private static Package CreatePackageDetails(List<Package> knownPackages)
-        {
-            var package = new Package();
-
-            var question = "What is the Package KEY?";
-            Func<string, bool> validator = x => !knownPackages.Any(y => y.Key.Equals(x));
-            var allowedInputs = $"The following Keys are already in use:\n{string.Join("\n", knownPackages.Select(pack => pack.Key))}";
-            package.Key = UserInterface.GetUserString(1, question, validator, allowedInputs);
-
-            question = "What is the Package Abbreviation?";
-            validator = x => !knownPackages.Where(p => !string.IsNullOrEmpty(p.Abbreviation)).Any(y => y.Abbreviation.Equals(x));
-            allowedInputs = $"The following Abbreviations are already in use:\n{string.Join("\n", knownPackages.Select(pack => pack.Abbreviation))}";
-            package.Abbreviation = UserInterface.GetUserString(1, question, validator, allowedInputs);
-
-            question = "What is the Package DisplayName?";
-            validator = x => !knownPackages.Where(p => !string.IsNullOrEmpty(p.DisplayName)).Any(y => y.DisplayName.Equals(x));
-            allowedInputs = $"The following Names are already in use:\n{string.Join("\n", knownPackages.Select(pack => pack.DisplayName))}";
-            package.DisplayName = UserInterface.GetUserString(1, question, validator, allowedInputs);
-
-            question = "Is this Package relevant for TimeTracking?";
-            package.RelevantForTimeTracking = UserInterface.GetUserConfirmation(1, question);
-
-            return package;
-        }
-
-        private static void DeletePackage(State state, Project currentProject)
-        {
-            var index = UserInterface.GetUserInt(2,
-                "Which package do you want to delete?(records referencing this package will NOT be deleted)",
-                x => x >= 0 && x < currentProject.Packages.Count, "Use one of the listed packages numbers");
-            currentProject.Packages.RemoveAt(index);
-            SaveProject(state, currentProject);
-        }
-
-        private static Project SwitchProject(State state)
-        {
-            var project = SelectExistingProject(state, 1);
-            var currentRecord = GetCurrentRecord(state) ?? CreateNewRecord(state);
+            var action = new SelectExistingProject(state, null, null, _dataAccess, 1);
+            Project project = action.Run();
             return project;
-        }
-
-        private static void ListTodaysActivities(State state, Project currentProject, Record currentRecord)
-        {
-            var useAggregation = UserInterface.GetUserConfirmation(1, "Do you want to aggregate packages?");
-
-            ListTodaysActivities(currentProject, currentRecord, useAggregation);
-            UserInterface.Print(0, "");
-            UserInterface.Print(1, "-------------------------------------");
-            UserInterface.Print(0, "");
-            PrintTotal(currentProject, currentRecord);
-            UserInterface.Print(0, "");
-            UserInterface.Print(0, "");
-
-            UserInterface.Pause();
-        }
-
-        private static void ListTodaysActivities(Project currentProject, Record currentRecord, bool useAggregation)
-        {
-            if (useAggregation)
-            {
-                ListTodaysActivitiesAggregated(currentProject, currentRecord);
-            }
-            else
-            {
-                ListTodaysActivitiesFull(currentProject, currentRecord);
-            }
-        }
-
-        private static void ListTodaysActivitiesAggregated(Project currentProject, Record currentRecord)
-        {
-            foreach (var entryGroup in currentRecord.RecordEntries.GroupBy(x => x.PackageKey))
-            {
-                var duration = TimeSpan.FromMinutes(entryGroup.Sum(x => x.Duration.TotalMinutes));
-
-                UserInterface.PrintSameLine(2, "Total: ");
-                UserInterface.PrintSameLine(0, $"{duration.Hours:00}:{duration.Minutes:00}", ConsoleColor.Green);
-                UserInterface.PrintSameLine(0, " --> [ ");
-                UserInterface.PrintSameLine(0, $"{entryGroup.Key}", ConsoleColor.Red);
-                UserInterface.Print(0, " ]");
-            }
-        }
-
-        private static void ListTodaysActivitiesFull(Project currentProject, Record currentRecord)
-        {
-            foreach (var entry in currentRecord.RecordEntries)
-            {
-                var start = entry.Start.Value;
-                var end = entry.Start.Value.Add(entry.Duration);
-                var duration = entry.Duration;
-
-                UserInterface.PrintSameLine(2, "From: ");
-                UserInterface.PrintSameLine(0, $"{start.Hour:00}:{start.Minute:00}", ConsoleColor.Yellow);
-                UserInterface.PrintSameLine(0, " To: ");
-                UserInterface.PrintSameLine(0, $"{end.Hour:00}:{end.Minute:00}", ConsoleColor.Yellow);
-                UserInterface.PrintSameLine(0, " Total: ");
-                UserInterface.PrintSameLine(0, $"{duration.Hours:00}:{duration.Minutes:00}", ConsoleColor.Green);
-                UserInterface.PrintSameLine(0, " --> [ ");
-                UserInterface.PrintSameLine(0, $"{entry.PackageKey}", ConsoleColor.Red);
-                UserInterface.Print(0, " ]");
-            }
-        }
-
-        private static void PrintTotal(Project currentProject, Record currentRecord)
-        {
-            var duration = TimeSpan.FromMinutes(currentRecord.RecordEntries.Where(y => (currentProject.Packages.FirstOrDefault(z => z.Key == y.PackageKey) != null) ? (currentProject.Packages.FirstOrDefault(z => z.Key == y.PackageKey).RelevantForTimeTracking) : true).Sum(x => x.Duration.TotalMinutes));
-
-            UserInterface.PrintSameLine(2, "Total: ");
-            UserInterface.Print(0, $"{duration.Hours:00}:{duration.Minutes:00}", ConsoleColor.Cyan);
-        }
-
-        private static void EditRecordEntries(State state, Project currentProject, Record currentRecord)
-        {
-            var adapter = new EditRecordsInteractiveMode(currentRecord);
-            UserInterface.RunUserInteractiveMode(adapter);
-            SaveRecord(state,currentRecord);
         }
     }
 }

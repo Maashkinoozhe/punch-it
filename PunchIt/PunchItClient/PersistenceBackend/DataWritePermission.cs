@@ -1,4 +1,4 @@
-﻿namespace PunchItClient
+﻿namespace PunchItClient.PersistenceBackend
 {
     internal class DataWritePermission
     {
