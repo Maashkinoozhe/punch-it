@@ -56,11 +56,6 @@ namespace PunchItClient
             // This listing represents the Main workflow
             State state = _dataAccess.GetState() ?? _dataAccess.CreateState();
 
-            //UserInterface.Print(2, "Welcome to \"Punch It!\"");
-            //UserInterface.Print("");
-            //UserInterface.Print("");
-            //UserInterface.Print("");
-
             Project currentProject = null;
             while (currentProject == null)
             {
