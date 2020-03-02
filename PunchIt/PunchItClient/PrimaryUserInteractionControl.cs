@@ -42,6 +42,7 @@ namespace PunchItClient
 
                 var answer = UserInterface.GetUserChar(1, "Select on what to do", null, x => StopReadUserInteraction(x, numberOfPackages), "please type sensible things > ? <", numberOfPackages.ToString().Length);
 
+                answer.TrimEnd('\r').TrimEnd('\n');
                 
                 if (actionStartWork.MatchesIdentifier(answer) && int.TryParse(answer, out var number))
                 {
@@ -185,7 +186,7 @@ namespace PunchItClient
             if (int.TryParse(input, out number))
             {
                 //It is a number
-                if (input.Length >= NumberOfPackages.ToString().Length)
+                if (input.Length >= (NumberOfPackages-1).ToString().Length)
                 {
                     return true;
                 }

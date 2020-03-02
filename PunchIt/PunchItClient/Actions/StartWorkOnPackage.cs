@@ -12,7 +12,7 @@ namespace PunchItClient.Actions
     {
         private Package _package { get; set; }
 
-        public StartWorkOnPackage(State state, Project currentProject, Record currentRecord, DataAccess dataAccess, int baseIndent) : base(state, currentProject, currentRecord, dataAccess, baseIndent, Enumerable.Range(0,currentProject.Packages.Count).Select(x=>x.ToString()).ToArray())
+        public StartWorkOnPackage(State state, Project currentProject, Record currentRecord, DataAccess dataAccess, int baseIndent) : base(state, currentProject, currentRecord, dataAccess, baseIndent, Enumerable.Range(0, currentProject.Packages.Count).Select(x => x.ToString()).Union(Enumerable.Range(0, currentProject.Packages.Count).Select(x => x.ToString("00"))).ToArray())
         {
         }
 
