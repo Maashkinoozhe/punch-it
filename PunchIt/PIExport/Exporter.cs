@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Text;
 using System.Threading.Tasks;
 using PIModel;
@@ -37,7 +39,7 @@ namespace PIExport
 
             CreateHeader(builder);
 
-            var data = Project.Records.SelectMany(r => r.RecordEntries).Where(e=> e.Start.Value.Date >= Start.Date && e.Start.Value.Date <= End.Date).ToList();
+            var data = Project.Records.SelectMany(r => r.RecordEntries).Where(e => e.Start.Value.Date >= Start.Date && e.Start.Value.Date <= End.Date).ToList();
 
             FormatData(builder, data);
 
@@ -62,16 +64,24 @@ namespace PIExport
             var entriesSorted = data.OrderBy(e => e.Start.Value).ToList();
             CleanEntries(entriesSorted);
 
+            RecordEntry lastEntry = null;
             foreach (var entry in entriesSorted)
             {
                 var endTime = entry.End.HasValue ? entry.End.Value : (entry.Start.Value.Date.Equals(DateTime.Now.Date) ? DateTime.Now : entry.Start.Value);
                 CreateEntry(builder, entry.Start.Value, endTime, entry.PackageKey);
+
+                //create empty line
+                if (lastEntry != null && lastEntry.Start.Value.Date.Equals(entry.Start.Value.Date))
+                {
+                    CreateEntry(builder, entry.Start.Value.Date, endTime.Date, "-------------");
+                }
+                lastEntry = entry;
             }
         }
 
         private void FormatDataAggregatedPackages(StringBuilder builder, IEnumerable<RecordEntry> data)
         {
-            CleanEntries(data.OrderBy(e=>e.Start.Value).ToList());
+            CleanEntries(data.OrderBy(e => e.Start.Value).ToList());
 
             var entriesDayGrouped = data.GroupBy(e => e.Start.Value.Date).OrderBy(g => g.First().Start.Value.Date);
 
@@ -80,9 +90,10 @@ namespace PIExport
                 foreach (var packageGroup in day.GroupBy(g => g.PackageKey))
                 {
                     var date = packageGroup.First().Start.Value.Date;
-                    var delta = TimeSpan.FromSeconds(packageGroup.Sum(e => (int) e.Duration.TotalSeconds));
-                    CreateEntry(builder,date,date + delta,packageGroup.Key);
+                    var delta = TimeSpan.FromSeconds(packageGroup.Sum(e => (int)e.Duration.TotalSeconds));
+                    CreateEntry(builder, date, date + delta, packageGroup.Key);
                 }
+                CreateEntry(builder, day.Key, day.Key, "-------------");
             }
         }
 
@@ -118,15 +129,20 @@ namespace PIExport
             builder.Append("Start" + _separator);
             builder.Append("End" + _separator);
             builder.AppendLine("Duration as hours");
+            builder.AppendLine("Duration as hours rounded");
         }
 
         private void CreateEntry(StringBuilder builder, DateTime start, DateTime end, string package)
         {
+            var durationHours = (end - start).TotalHours;
+            double rounded = Math.Round(durationHours * 4, 0) / 4;
+
             builder.Append(start.ToString(_DateFormat) + _separator);
             builder.Append(package + _separator);
             builder.Append(start.ToString(_TimeFormat) + _separator);
             builder.Append(end.ToString(_TimeFormat) + _separator);
-            builder.AppendLine((end - start).TotalHours.ToString("00.00"));
+            builder.Append(durationHours.ToString("00.00") + _separator);
+            builder.AppendLine(rounded.ToString("00.00"));
         }
     }
 }
